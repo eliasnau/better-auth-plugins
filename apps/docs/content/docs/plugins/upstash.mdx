@@ -1,0 +1,105 @@
+---
+title: Upstash Rate Limiter
+description: Use Upstash Redis with Better Auth rateLimit via a wrapper (not a plugin)
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+
+Use [Upstash Redis](https://upstash.com/redis) in Better Auth.
+
+<Callout type="info">
+This is not a traditional Better Auth plugin.
+You do not add it to `plugins: []`.
+It is a `rateLimit` wrapper your for Better Auth config.
+</Callout>
+
+## Installation
+
+<Steps>
+<Step>
+
+### Install dependencies
+```package-install
+@better-auth-plugins/plugins @upstash/redis
+```
+
+</Step>
+<Step>
+
+### Create your Redis client
+
+```ts title="lib/redis.ts"
+import { Redis } from "@upstash/redis";
+
+export const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+```
+
+or 
+
+```ts title="lib/redis.ts"
+import { Redis } from "@upstash/redis";
+
+export const redis = new Redis.fromEnv()
+```
+</Step>
+<Step>
+
+### Add `upstashRateLimiter` to `rateLimit`
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+import { upstashRateLimiter } from "@better-auth-plugins/plugins/upstash";
+import { redis } from "./lib/redis";
+
+export const auth = betterAuth({
+  rateLimit: upstashRateLimiter({
+    redis,
+    window: 10,
+    max: 100,
+  }),
+});
+```
+
+</Step>
+</Steps>
+
+## Better Auth options still work
+
+`upstashRateLimiter` passes Better Auth rate-limit options through, while injecting custom storage.
+
+That means things like `enabled`, `window`, `max`, `customRules`, and `advanced` behavior are still handled by Better Auth.
+
+```ts title="auth.ts"
+export const auth = betterAuth({
+  rateLimit: upstashRateLimiter({
+    redis,
+    window: 10,
+    max: 100,
+    customRules: {
+      "/sign-in/email": {
+        window: 10,
+        max: 3,
+      },
+      "/two-factor/*": async (request) => {
+        return {
+          window: 10,
+          max: 3,
+        };
+      },
+    },
+  }),
+});
+```
+
+## API
+
+- `upstashRateLimiter(options)`
+- `createUpstashRateLimitStorage(options)`
+
+### `options`
+
+- `redis: { get(key), set(key, value, { ex }) }` (required)
+- All Better Auth `rateLimit` options except `customStorage` and `storage`
