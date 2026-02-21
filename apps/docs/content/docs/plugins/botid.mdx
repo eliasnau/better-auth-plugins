@@ -1,0 +1,135 @@
+---
+title: BotID 
+description: Protect your Auth from bots with Vercel's BotID
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+
+Use Vercel [BotID](https://vercel.com/botid) to protect Better Auth routes from automated traffic.
+
+## Installation
+
+<Steps>
+<Step>
+
+### Install dependencies
+```package-install
+@better-auth-plugins/plugins botid
+```
+
+</Step>
+<Step>
+
+### Add the plugin to your auth config
+
+```ts title="auth.ts" twoslash
+import { betterAuth } from "better-auth";
+import { botIdCaptchaPlugin } from "@better-auth-plugins/plugins/botid"; // [!code ++]
+
+export const auth = betterAuth({
+  plugins: [
+    botIdCaptchaPlugin(), // [!code ++]
+  ],
+});
+```
+
+</Step>
+<Step>
+
+### Configure Next.js with `withBotId`
+
+Wrap your `next.config.ts` with `withBotId`:
+
+```ts title="next.config.ts" twoslash
+import { withBotId } from "botid/next/config";
+
+const nextConfig = {
+  // your existing Next.js config
+};
+// [!code word:withBotId(nextConfig)]
+export default withBotId(nextConfig);
+```
+
+</Step>
+<Step>
+
+### Add BotID client protection
+
+For Next.js 15.3+, create `instrumentation-client.ts`:
+
+```ts title="instrumentation-client.ts" twoslash
+import { initBotId } from "botid/client/core";
+
+initBotId({
+  protect: [
+    {
+      path: "/sign-up/email",
+      method: "POST",
+      advancedOptions: { checkLevel: "basic" },
+    },
+    {
+      path: "/sign-in/email",
+      method: "POST",
+      advancedOptions: { checkLevel: "basic" },
+    },
+  ],
+});
+```
+
+If you're using a different framework or older Next.js version, follow the official [BotID setup documentation](https://vercel.com/docs/botid/get-started).
+
+</Step>
+</Steps>
+
+<Callout type="warn">
+Your BotID client config must stay in sync with your backend plugin config.
+For every protected backend route, add the same route in client `protect`, and match the same check mode (`basic` or `deepAnalysis`).
+Follow Vercel's configuration guide, or use the custom-routes example in this page.
+</Callout>
+
+## Protecting other routes
+
+You can specify any route to protect with BotID by adding it to the `routes` array in the plugin options. Each route can have its own `checkMode` (either `basic` or `deepAnalysis`), or it can fall back to the `defaultCheckMode` specified in the plugin options.
+
+```ts title="auth.ts" twoslash
+export const auth = betterAuth({
+  plugins: [
+    botIdCaptchaPlugin({
+      defaultCheckMode: "basic", // default check mode for routes that don't specify their own
+      routes: [
+        { pathPrefix: "/sign-up/email", method: "POST", checkMode: "deepAnalysis" },
+        { pathPrefix: "/sign-in/email", method: "POST" },
+      ],
+    }),
+  ],
+});
+```
+
+In the example above, the `/sign-up/email` route will be protected using `deepAnalysis` mode, while the `/sign-in/email` route will use the `defaultCheckMode` of `basic`. Other routes will not be protected by BotID.
+
+## Development bypass
+
+During local development, BotID behaves differently than in production to facilitate testing and development workflows. In development mode,  all requests are allowed to pass through. This ensures your development workflow isn't interrupted by bot protection while building and testing features.
+
+If you need to actively test BotID's different bot detection outcomes or simulate specific scenarios during local development, you can override this default behavior using the `developmentBypass` option:
+
+```ts
+export const auth = betterAuth({
+  plugins: [
+    botIdCaptchaPlugin({
+      developmentBypass: "HUMAN", // Available options: "HUMAN", "BAD-BOT", "GOOD-BOT", "ALLOWED"
+    }),
+  ],
+});
+```
+
+<Callout type="info">
+The `developmentBypass` option only works in development mode and is ignored in production. In production, BotID always performs real bot detection.
+</Callout>
+
+## Plugin options
+
+- `routes?: BotIdCaptchaRoute[]`
+- `defaultCheckMode?: "basic" | "deepAnalysis"`
+- `developmentBypass?: "HUMAN" | "BAD-BOT" | "GOOD-BOT" | "ALLOWED"`
+- `errorMessages?: { botDetected?, verificationFailed?, unknown? }`

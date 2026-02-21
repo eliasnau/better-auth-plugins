@@ -1,0 +1,69 @@
+---
+title: Contributing
+description: How to contribute to Better Auth Plugins
+---
+
+Thank you for your interest in contributing.
+
+This repository focuses on practical, community-maintained Better Auth plugins. Contributions can include new plugins, fixes, docs improvements, and developer experience improvements.
+
+## Ways to contribute
+
+- Report bugs
+- Propose plugin ideas
+- Improve documentation
+- Submit fixes and improvements
+- Add new plugins
+
+## Before opening a PR
+
+1. Open an issue for major changes or new plugin proposals.
+2. Confirm scope, API shape, and expected behavior.
+3. Keep changes focused and small when possible.
+
+## Contribution standards
+
+- Follow existing repository structure and naming patterns.
+- Prefer clear, minimal APIs over broad or ambiguous option surfaces.
+- Include or update docs for behavioral changes.
+- Keep examples aligned with real usage.
+- Preserve backward compatibility unless breaking changes are explicitly approved.
+
+## Plugin expectations
+
+When adding a new plugin, include:
+
+- Server plugin implementation
+- Error handling strategy
+- Documentation page under `content/docs/plugins`
+- Basic usage examples
+- Any required framework/platform setup notes
+
+## Local development
+
+From repository root:
+
+```bash
+pnpm install
+pnpm --filter docs dev
+```
+
+Useful checks:
+
+```bash
+pnpm --filter docs types:check
+pnpm --filter docs lint
+```
+
+## Pull request checklist
+
+- [ ] Code compiles and typechecks
+- [ ] Documentation is updated
+- [ ] Examples are accurate
+- [ ] Changes are scoped to the intended feature/fix
+
+## Code of collaboration
+
+Be direct, respectful, and technical.
+
+If something is unclear, ask early so we can align before implementation.

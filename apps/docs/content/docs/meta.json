@@ -1,0 +1,4 @@
+{
+  "title": "Documentation",
+  "pages": ["index", "contributing", "---Plugins---", "./plugins/botid"]
+}

@@ -1,0 +1,6 @@
+{
+  "title": "Plugins",
+  "collapsible": false,
+  "defaultOpen": true,
+  "pages": ["botid"]
+}

@@ -1,4 +1,5 @@
 import type { BaseLayoutProps } from "fumadocs-ui/layouts/shared";
+import { HomeIcon } from "lucide-react";
 
 // fill this with your actual GitHub info, for example:
 export const gitConfig = {
@@ -15,8 +16,10 @@ export function baseOptions(): BaseLayoutProps {
     githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
     links: [
       {
-        href: "/",
-        label: "Home",
+        icon: <HomeIcon />,
+        text: "Home",
+        url: "/",
+        secondary: false,
       },
     ],
   };
