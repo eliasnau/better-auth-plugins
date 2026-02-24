@@ -14,6 +14,18 @@
     "./botid": {
       "types": "./dist/botid/index.d.ts",
       "import": "./dist/botid/index.js"
+    },
+    "./arcjet": {
+      "types": "./dist/arcjet/index.d.ts",
+      "import": "./dist/arcjet/index.js"
+    },
+    "./upstash": {
+      "types": "./dist/upstash/index.d.ts",
+      "import": "./dist/upstash/index.js"
+    },
+    "./org-api-key": {
+      "types": "./dist/org-api-key/index.d.ts",
+      "import": "./dist/org-api-key/index.js"
     }
   },
   "files": [
@@ -25,8 +37,17 @@
     "check-types": "tsc --noEmit"
   },
   "peerDependencies": {
+    "@arcjet/node": ">=1",
     "better-auth": ">=1",
     "botid": ">=1.4.5"
+  },
+  "peerDependenciesMeta": {
+    "@arcjet/node": {
+      "optional": true
+    },
+    "botid": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
