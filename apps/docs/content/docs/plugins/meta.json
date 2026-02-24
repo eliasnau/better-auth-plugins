@@ -2,5 +2,5 @@
   "title": "Plugins",
   "collapsible": false,
   "defaultOpen": true,
-  "pages": ["botid", "arcjet", "upstash"]
+  "pages": ["botid", "arcjet", "org-api-key", "upstash"]
 }

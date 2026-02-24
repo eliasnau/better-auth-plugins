@@ -1,0 +1,483 @@
+---
+title: Organization API Key
+description: Organization-scoped API keys for Better Auth
+---
+
+import { Step, Steps } from "fumadocs-ui/components/steps";
+
+The Organization API Key plugin lets you create and manage API keys that belong to an organization instead of a user.
+
+<Callout type="warn">
+This plugin is currently in development. APIs and behavior may change before stable release.
+</Callout>
+
+## Features
+
+- Create, update, verify, list, and delete organization API keys
+- Built-in per-key rate limiting
+- Custom expiration, remaining usage, and refill behavior
+- Optional metadata and permissions on each key
+- Custom key prefix, generator, and validator
+
+## Installation
+
+<Steps>
+<Step>
+
+### Add plugin to the server
+
+```ts title="auth.ts"
+import { betterAuth } from "better-auth";
+import { organizationApiKey } from "@better-auth-plugins/plugins/org-api-key";
+
+export const auth = betterAuth({
+  plugins: [
+    organizationApiKey(),
+  ],
+});
+```
+
+</Step>
+<Step>
+
+### Migrate the database
+
+<Tabs items={["migrate", "generate"]}>
+  <Tab value="migrate">
+    ```bash
+    pnpm dlx @better-auth/cli migrate
+    ```
+  </Tab>
+  <Tab value="generate">
+    ```bash
+    pnpm dlx @better-auth/cli generate
+    ```
+  </Tab>
+</Tabs>
+
+</Step>
+<Step>
+
+### Add the client plugin
+
+```ts title="auth-client.ts"
+import { createAuthClient } from "better-auth/client";
+import { organizationApiKeyClient } from "@better-auth-plugins/plugins/org-api-key";
+
+export const authClient = createAuthClient({
+  plugins: [
+    organizationApiKeyClient(),
+  ],
+});
+```
+
+</Step>
+</Steps>
+
+<Callout type="warn">
+This plugin expects organization models (for example `organization` and `member`).
+</Callout>
+
+## Usage
+
+### Create an organization API key
+
+<Tabs items={["Client Side", "Server Side", "Type Definition"]}>
+  <Tab value="Client Side">
+    ```ts
+    const { data, error } = await authClient.organizationApiKey.createOrganizationApiKey({
+      organizationId: "org_123",
+      name: "CI key",
+      expiresIn: 60 * 60 * 24 * 30,
+      prefix: "org_live_",
+      metadata: {
+        env: "production",
+      },
+    });
+    ```
+  </Tab>
+  <Tab value="Server Side">
+    ```ts
+    const data = await auth.api.createOrganizationApiKey({
+      body: {
+        organizationId: "org_123",
+        name: "CI key",
+        expiresIn: 60 * 60 * 24 * 30,
+        prefix: "org_live_",
+        remaining: 1000,
+        refillAmount: 1000,
+        refillInterval: 1000 * 60 * 60 * 24 * 30,
+        rateLimitEnabled: true, // server-only
+        rateLimitTimeWindow: 1000 * 60 * 60, // server-only
+        rateLimitMax: 500, // server-only
+        permissions: {
+          projects: ["read", "deploy"],
+        },
+        metadata: {
+          env: "production",
+        },
+      },
+      headers,
+    });
+    ```
+  </Tab>
+  <Tab value="Type Definition">
+    ```ts
+    type CreateOrganizationApiKey = {
+      organizationId: string;
+      name?: string;
+      expiresIn?: number | null;
+      prefix?: string;
+      remaining?: number | null; // server-only
+      refillAmount?: number; // server-only
+      refillInterval?: number; // server-only
+      rateLimitEnabled?: boolean; // server-only
+      rateLimitTimeWindow?: number | null; // server-only
+      rateLimitMax?: number | null; // server-only
+      permissions?: Record<string, string[]>; // server-only
+      metadata?: Record<string, unknown>;
+    };
+    ```
+  </Tab>
+</Tabs>
+
+#### Result
+
+Returns the created key object and the plaintext `key` value (shown once on creation).
+
+---
+
+### Verify an organization API key
+
+<Tabs items={["Client Side", "Server Side", "Type Definition"]}>
+  <Tab value="Client Side">
+    ```ts
+    const { data, error } = await authClient.organizationApiKey.verifyOrganizationApiKey({
+      key: "org_live_xxx",
+      organizationId: "org_123",
+      permissions: {
+        projects: ["deploy"],
+      },
+    });
+    ```
+  </Tab>
+  <Tab value="Server Side">
+    ```ts
+    const data = await auth.api.verifyOrganizationApiKey({
+      body: {
+        key: "org_live_xxx",
+        organizationId: "org_123",
+        permissions: {
+          projects: ["deploy"],
+        },
+      },
+    });
+    ```
+  </Tab>
+  <Tab value="Type Definition">
+    ```ts
+    type VerifyOrganizationApiKey = {
+      key?: string; // or use header
+      organizationId?: string;
+      permissions?: Record<string, string[]>;
+    };
+    ```
+  </Tab>
+</Tabs>
+
+#### Result
+
+```ts
+type Result = {
+  valid: boolean;
+  error: { message: string; code: string; tryAgainIn?: number } | null;
+  key: OrganizationApiKeyPublicRecord | null;
+};
+```
+
+---
+
+### Get an organization API key
+
+<Tabs items={["Client Side", "Server Side"]}>
+  <Tab value="Client Side">
+    ```ts
+    const { data, error } = await authClient.organizationApiKey.getOrganizationApiKey({
+      query: { id: "org_key_123" },
+    });
+    ```
+  </Tab>
+  <Tab value="Server Side">
+    ```ts
+    const data = await auth.api.getOrganizationApiKey({
+      query: { id: "org_key_123" },
+      headers,
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Update an organization API key
+
+<Tabs items={["Client Side", "Server Side", "Type Definition"]}>
+  <Tab value="Client Side">
+    ```ts
+    const { data, error } = await authClient.organizationApiKey.updateOrganizationApiKey({
+      keyId: "org_key_123",
+      name: "Updated CI key",
+      enabled: true,
+      metadata: { team: "platform" },
+    });
+    ```
+  </Tab>
+  <Tab value="Server Side">
+    ```ts
+    const data = await auth.api.updateOrganizationApiKey({
+      body: {
+        keyId: "org_key_123",
+        name: "Updated CI key",
+        enabled: true,
+        remaining: 250,
+        refillAmount: 500,
+        refillInterval: 1000 * 60 * 60 * 24,
+        rateLimitEnabled: true, // server-only
+        rateLimitTimeWindow: 1000 * 60 * 30, // server-only
+        rateLimitMax: 1000, // server-only
+        metadata: { team: "platform" },
+        permissions: {
+          projects: ["read"],
+        },
+      },
+      headers,
+    });
+    ```
+  </Tab>
+  <Tab value="Type Definition">
+    ```ts
+    type UpdateOrganizationApiKey = {
+      keyId: string;
+      name?: string;
+      enabled?: boolean;
+      expiresIn?: number | null;
+      remaining?: number | null; // server-only
+      refillAmount?: number | null; // server-only
+      refillInterval?: number | null; // server-only
+      rateLimitEnabled?: boolean; // server-only
+      rateLimitTimeWindow?: number | null; // server-only
+      rateLimitMax?: number | null; // server-only
+      metadata?: Record<string, unknown>;
+      permissions?: Record<string, string[]>; // server-only
+    };
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Delete an organization API key
+
+<Tabs items={["Client Side", "Server Side"]}>
+  <Tab value="Client Side">
+    ```ts
+    const { data, error } = await authClient.organizationApiKey.deleteOrganizationApiKey({
+      keyId: "org_key_123",
+    });
+    ```
+  </Tab>
+  <Tab value="Server Side">
+    ```ts
+    const data = await auth.api.deleteOrganizationApiKey({
+      body: { keyId: "org_key_123" },
+      headers,
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### List organization API keys
+
+<Tabs items={["Client Side", "Server Side"]}>
+  <Tab value="Client Side">
+    ```ts
+    const { data, error } = await authClient.organizationApiKey.listOrganizationApiKeys({
+      query: { organizationId: "org_123" },
+    });
+    ```
+  </Tab>
+  <Tab value="Server Side">
+    ```ts
+    const data = await auth.api.listOrganizationApiKeys({
+      query: { organizationId: "org_123" },
+      headers,
+    });
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Verify using header key
+
+By default, the plugin reads keys from `x-org-api-key`.
+
+```ts
+const data = await auth.api.verifyOrganizationApiKey({
+  body: {
+    organizationId: "org_123",
+  },
+  headers: new Headers({
+    "x-org-api-key": "org_live_xxx",
+  }),
+});
+```
+
+## Rate Limiting
+
+Each key has:
+
+- `rateLimitEnabled`
+- `rateLimitTimeWindow` (milliseconds)
+- `rateLimitMax`
+
+<Callout type="info">
+Server-only key fields: `remaining`, `refillAmount`, `refillInterval`,
+`rateLimitEnabled`, `rateLimitTimeWindow`, `rateLimitMax`, and `permissions`.
+</Callout>
+
+Rate limiting uses a sliding window based on `lastRequest` + `requestCount`.  
+If a key is over limit, verification returns `RATE_LIMITED` with `tryAgainIn`.
+
+## Remaining, Refill, and Expiration
+
+- `remaining`: requests left for the key. `null` means unlimited.
+- `refillAmount` + `refillInterval`: if both are set, usage refills to `refillAmount` when the interval passes.
+- `expiresIn`: expiration in seconds when creating/updating.
+
+When `remaining` reaches `0` and no refill is configured, verification returns `USAGE_EXCEEDED`.
+
+## Permissions
+
+Permissions are resource-based:
+
+```ts
+type Permissions = {
+  [resource: string]: string[];
+};
+```
+
+You can set defaults for new keys:
+
+```ts
+organizationApiKey({
+  permissions: {
+    defaultPermissions: {
+      projects: ["read"],
+    },
+  },
+});
+```
+
+Or resolve defaults dynamically:
+
+```ts
+organizationApiKey({
+  permissions: {
+    defaultPermissions: async ({ organizationId, userId }) => {
+      return { projects: ["read"] };
+    },
+  },
+});
+```
+
+## Metadata
+
+Metadata is disabled by default. Enable it:
+
+```ts
+organizationApiKey({
+  enableMetadata: true,
+});
+```
+
+## Custom key generation & verification
+
+```ts
+organizationApiKey({
+  customKeyGenerator: async ({ length, prefix }) => {
+    return `${prefix ?? ""}${crypto.randomUUID().replaceAll("-", "").slice(0, length)}`;
+  },
+  customAPIKeyValidator: async ({ key }) => {
+    return key.startsWith("org_");
+  },
+});
+```
+
+## Plugin Options
+
+- `apiKeyHeaders?: string | string[]`
+- `defaultKeyLength?: number`
+- `defaultPrefix?: string`
+- `minimumPrefixLength?: number`
+- `maximumPrefixLength?: number`
+- `minimumNameLength?: number`
+- `maximumNameLength?: number`
+- `requireName?: boolean`
+- `enableMetadata?: boolean`
+- `disableKeyHashing?: boolean`
+- `startingCharactersConfig?: { shouldStore?: boolean; charactersLength?: number }`
+- `rateLimit?: { enabled?: boolean; timeWindow?: number; maxRequests?: number }`
+- `keyExpiration?: { defaultExpiresIn?: number | null; disableCustomExpiresTime?: boolean; minExpiresIn?: number; maxExpiresIn?: number }`
+- `permissions?: { defaultPermissions?: Record<string, string[]> | ({ organizationId, userId, ctx }) => Record<string, string[]> | Promise<Record<string, string[]>> }`
+- `managementRoles?: string[]`
+- `tableName?: string`
+- `organizationModel?: string`
+- `memberModel?: string`
+- `customAPIKeyGetter?: (ctx) => string | null`
+- `customAPIKeyValidator?: ({ ctx, key }) => boolean | Promise<boolean>`
+- `customKeyGenerator?: ({ length, prefix }) => string | Promise<string>`
+
+## Endpoints
+
+- `POST /organization/api-key/create`
+- `GET /organization/api-key/list`
+- `GET /organization/api-key/get`
+- `POST /organization/api-key/update`
+- `POST /organization/api-key/delete`
+- `POST /organization/api-key/verify`
+
+## Schema
+
+Table: `organizationApiKey` (default model name)
+
+| Field | Type | Description | Required |
+| --- | --- | --- | --- |
+| `id` | `string` | Primary key | Yes |
+| `name` | `string` | Key display name | No |
+| `start` | `string` | First characters for UI identification | No |
+| `prefix` | `string` | Key prefix | No |
+| `key` | `string` | Hashed key value | Yes |
+| `organizationId` | `string` | Owning organization ID | Yes |
+| `createdByUserId` | `string` | Creator user ID | Yes |
+| `enabled` | `boolean` | Whether key is enabled | Yes |
+| `rateLimitEnabled` | `boolean` | Per-key rate-limit switch | Yes |
+| `rateLimitTimeWindow` | `number` | Rate-limit window in ms | No |
+| `rateLimitMax` | `number` | Max requests in window | No |
+| `requestCount` | `number` | Current requests in active window | Yes |
+| `lastRequest` | `Date` | Last request timestamp | No |
+| `remaining` | `number` | Remaining usage allowance | No |
+| `refillAmount` | `number` | Remaining reset target | No |
+| `refillInterval` | `number` | Refill interval in ms | No |
+| `lastRefillAt` | `Date` | Last refill timestamp | No |
+| `expiresAt` | `Date` | Expiration timestamp | No |
+| `permissions` | `string` | Serialized permissions | No |
+| `metadata` | `string` | Serialized metadata | No |
+| `createdAt` | `Date` | Created timestamp | Yes |
+| `updatedAt` | `Date` | Updated timestamp | Yes |
+
+<Callout type="info">
+Not implemented in this plugin: secondary storage modes and session-from-api-key behavior.
+</Callout>
